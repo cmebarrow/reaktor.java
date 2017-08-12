@@ -48,6 +48,7 @@ public class ReaktorBuilder
     private IdleStrategy idleStrategy;
     private ErrorHandler errorHandler;
     private Supplier<NukleusFactory> supplyNukleusFactory;
+    private Supplier <ControllerFactory> supplyControllerFactory;
 
     ReaktorBuilder()
     {
@@ -95,6 +96,7 @@ public class ReaktorBuilder
         ClassLoader loader)
     {
         requireNonNull(loader);
+        this.supplyControllerFactory = () -> ControllerFactory.instantiate(loader);
         this.supplyNukleusFactory = () -> NukleusFactory.instantiate(loader);
         return this;
     }
@@ -121,7 +123,7 @@ public class ReaktorBuilder
             }
         }
 
-        ControllerFactory controllerFactory = ControllerFactory.instantiate();
+        ControllerFactory controllerFactory = supplyControllerFactory.get();
 
         Controller[] controllers = new Controller[0];
         Map<Class<? extends Controller>, Controller> controllersByKind = new HashMap<>();
