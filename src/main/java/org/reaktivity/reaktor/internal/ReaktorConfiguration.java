@@ -68,6 +68,7 @@ public class ReaktorConfiguration extends Configuration
         super(properties);
     }
 
+    @Override
     public final Path directory()
     {
         return Paths.get(getProperty(DIRECTORY_PROPERTY_NAME, "."));
@@ -88,36 +89,43 @@ public class ReaktorConfiguration extends Configuration
         return getInteger(ABORT_STREAM_FRAME_TYPE_ID, ABORT_STREAM_EVENT_TYPE_ID_DEFAULT);
     }
 
+    @Override
     public int maximumStreamsCount()
     {
         return bufferPoolCapacity() / bufferSlotCapacity();
     }
 
+    @Override
     public int streamsBufferCapacity()
     {
         return getInteger(STREAMS_BUFFER_CAPACITY_PROPERTY_NAME, STREAMS_BUFFER_CAPACITY_DEFAULT);
     }
 
+    @Override
     public int throttleBufferCapacity()
     {
         return getInteger(THROTTLE_BUFFER_CAPACITY_PROPERTY_NAME, THROTTLE_BUFFER_CAPACITY_DEFAULT);
     }
 
+    @Override
     public int commandBufferCapacity()
     {
         return getInteger(COMMAND_BUFFER_CAPACITY_PROPERTY_NAME, COMMAND_BUFFER_CAPACITY_DEFAULT);
     }
 
+    @Override
     public int responseBufferCapacity()
     {
         return getInteger(RESPONSE_BUFFER_CAPACITY_PROPERTY_NAME, RESPONSE_BUFFER_CAPACITY_DEFAULT);
     }
 
+    @Override
     public int counterValuesBufferCapacity()
     {
         return getInteger(COUNTERS_BUFFER_CAPACITY_PROPERTY_NAME, COUNTERS_BUFFER_CAPACITY_DEFAULT);
     }
 
+    @Override
     public int counterLabelsBufferCapacity()
     {
         return getInteger(COUNTERS_BUFFER_CAPACITY_PROPERTY_NAME, COUNTERS_BUFFER_CAPACITY_DEFAULT) * 2;

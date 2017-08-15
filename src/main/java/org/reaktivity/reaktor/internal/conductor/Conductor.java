@@ -26,20 +26,28 @@ import org.agrona.concurrent.ringbuffer.RingBuffer;
 import org.reaktivity.nukleus.Nukleus;
 import org.reaktivity.reaktor.internal.Context;
 import org.reaktivity.reaktor.internal.acceptor.Acceptor;
+import org.reaktivity.reaktor.internal.types.control.AuthorizeFW;
+import org.reaktivity.reaktor.internal.types.control.AuthorizedFW;
 import org.reaktivity.reaktor.internal.types.control.ErrorFW;
 import org.reaktivity.reaktor.internal.types.control.FrameFW;
 import org.reaktivity.reaktor.internal.types.control.RouteFW;
 import org.reaktivity.reaktor.internal.types.control.RoutedFW;
+import org.reaktivity.reaktor.internal.types.control.UnauthorizeFW;
+import org.reaktivity.reaktor.internal.types.control.UnauthorizedFW;
 import org.reaktivity.reaktor.internal.types.control.UnrouteFW;
 import org.reaktivity.reaktor.internal.types.control.UnroutedFW;
 
 public final class Conductor implements Nukleus
 {
     private final FrameFW frameRO = new FrameFW();
+    private final AuthorizeFW authorizeRO = new AuthorizeFW();
+    private final UnauthorizeFW unauthorizeRO = new UnauthorizeFW();
     private final RouteFW routeRO = new RouteFW();
     private final UnrouteFW unrouteRO = new UnrouteFW();
 
     private final ErrorFW.Builder errorRW = new ErrorFW.Builder();
+    private final AuthorizedFW.Builder authorizedRW = new AuthorizedFW.Builder();
+    private final UnauthorizedFW.Builder unauthorizedRW = new UnauthorizedFW.Builder();
     private final RoutedFW.Builder routedRW = new RoutedFW.Builder();
     private final UnroutedFW.Builder unroutedRW = new UnroutedFW.Builder();
 
@@ -63,6 +71,30 @@ public final class Conductor implements Nukleus
         Acceptor acceptor)
     {
         this.acceptor = acceptor;
+    }
+
+    public void onAuthorized(
+        long correlationId,
+        long authMask,
+        long authExpires)
+    {
+        AuthorizedFW authorized = authorizedRW.wrap(sendBuffer, 0, sendBuffer.capacity())
+                .correlationId(correlationId)
+                .authMask(authMask)
+                .authExpires(authExpires)
+                .build();
+
+        conductorResponses.transmit(authorized.typeId(), authorized.buffer(), authorized.offset(), authorized.sizeof());
+    }
+
+    public void onUnauthorized(
+        long correlationId)
+    {
+        UnauthorizedFW unauthorized = unauthorizedRW.wrap(sendBuffer, 0, sendBuffer.capacity())
+                .correlationId(correlationId)
+                .build();
+
+        conductorResponses.transmit(unauthorized.typeId(), unauthorized.buffer(), unauthorized.offset(), unauthorized.sizeof());
     }
 
     public void onError(
@@ -117,6 +149,14 @@ public final class Conductor implements Nukleus
     {
         switch (msgTypeId)
         {
+        case AuthorizeFW.TYPE_ID:
+            final AuthorizeFW authorize = authorizeRO.wrap(buffer, index, index + length);
+            acceptor.doAuthorize(authorize);
+            break;
+        case UnauthorizeFW.TYPE_ID:
+            final UnauthorizeFW unauthorize = unauthorizeRO.wrap(buffer, index, index + length);
+            acceptor.doUnauthorize(unauthorize);
+            break;
         case RouteFW.TYPE_ID:
             final RouteFW route = routeRO.wrap(buffer, index, index + length);
             acceptor.doRoute(route);

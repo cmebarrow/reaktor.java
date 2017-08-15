@@ -40,8 +40,10 @@ import org.reaktivity.reaktor.internal.router.ReferenceKind;
 import org.reaktivity.reaktor.internal.router.Router;
 import org.reaktivity.reaktor.internal.types.OctetsFW;
 import org.reaktivity.reaktor.internal.types.StringFW;
+import org.reaktivity.reaktor.internal.types.control.AuthorizeFW;
 import org.reaktivity.reaktor.internal.types.control.Role;
 import org.reaktivity.reaktor.internal.types.control.RouteFW;
+import org.reaktivity.reaktor.internal.types.control.UnauthorizeFW;
 import org.reaktivity.reaktor.internal.types.control.UnrouteFW;
 
 public final class Acceptor extends Nukleus.Composite
@@ -111,6 +113,20 @@ public final class Acceptor extends Nukleus.Composite
     public String name()
     {
         return "acceptor";
+    }
+
+    public void doAuthorize(
+        AuthorizeFW authorize)
+    {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException();
+    }
+
+    public void doUnauthorize(
+        UnauthorizeFW unauthorize)
+    {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException();
     }
 
     public void doRoute(

@@ -37,10 +37,14 @@ import org.reaktivity.nukleus.ControllerSpi;
 import org.reaktivity.nukleus.function.MessageConsumer;
 import org.reaktivity.nukleus.function.MessagePredicate;
 import org.reaktivity.reaktor.internal.layouts.StreamsLayout;
+import org.reaktivity.reaktor.internal.types.control.AuthorizeFW;
+import org.reaktivity.reaktor.internal.types.control.AuthorizedFW;
 import org.reaktivity.reaktor.internal.types.control.ErrorFW;
 import org.reaktivity.reaktor.internal.types.control.FrameFW;
 import org.reaktivity.reaktor.internal.types.control.RouteFW;
 import org.reaktivity.reaktor.internal.types.control.RoutedFW;
+import org.reaktivity.reaktor.internal.types.control.UnauthorizeFW;
+import org.reaktivity.reaktor.internal.types.control.UnauthorizedFW;
 import org.reaktivity.reaktor.internal.types.control.UnrouteFW;
 import org.reaktivity.reaktor.internal.types.control.UnroutedFW;
 
@@ -101,6 +105,8 @@ public final class ControllerBuilderImpl<T extends Controller> implements Contro
         private final FrameFW frameRO = new FrameFW();
         private final RoutedFW routedRO = new RoutedFW();
         private final UnroutedFW unroutedRO = new UnroutedFW();
+        private final AuthorizedFW authorizedRO = new AuthorizedFW();
+        private final UnauthorizedFW unauthorizedRO = new UnauthorizedFW();
         private final ErrorFW errorRO = new ErrorFW();
 
         private final Context context;
@@ -145,6 +151,27 @@ public final class ControllerBuilderImpl<T extends Controller> implements Contro
             targetsByName.clear();
 
             CloseHelper.close(context);
+        }
+
+        @Override
+        public CompletableFuture<Authorization> doAuthorize(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            assert msgTypeId == AuthorizeFW.TYPE_ID;
+
+            return handleCommand(Authorization.class, msgTypeId, buffer, index, length);
+        }
+
+
+        @Override
+        public CompletableFuture<Void> doUnauthorize(int msgTypeId, DirectBuffer buffer, int index, int length)
+        {
+            assert msgTypeId == UnauthorizeFW.TYPE_ID;
+
+            return handleCommand(Void.class, msgTypeId, buffer, index, length);
         }
 
         @Override
@@ -265,6 +292,12 @@ public final class ControllerBuilderImpl<T extends Controller> implements Contro
             case UnroutedFW.TYPE_ID:
                 handleUnroutedResponse(buffer, index, length);
                 break;
+            case AuthorizedFW.TYPE_ID:
+                handleAuthorizedResponse(buffer, index, length);
+                break;
+            case UnauthorizedFW.TYPE_ID:
+                handleUnauthorizedResponse(buffer, index, length);
+                break;
             default:
                 break;
             }
@@ -311,6 +344,39 @@ public final class ControllerBuilderImpl<T extends Controller> implements Contro
         {
             final UnroutedFW unrouted = unroutedRO.wrap(buffer, index, length);
             final long correlationId = unrouted.correlationId();
+
+            CompletableFuture<?> promise = promisesByCorrelationId.remove(correlationId);
+            if (promise != null)
+            {
+                commandSucceeded(promise);
+            }
+        }
+
+        @SuppressWarnings("unchecked")
+        private void handleAuthorizedResponse(
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            final AuthorizedFW authorized = authorizedRO.wrap(buffer, index, length);
+            long correlationId = authorized.correlationId();
+            Authorization authorization = new Authorization(authorized.authMask(), authorized.authExpires());
+
+            CompletableFuture<Authorization> promise =
+                    (CompletableFuture<Authorization>) promisesByCorrelationId.remove(correlationId);
+            if (promise != null)
+            {
+                commandSucceeded(promise, authorization);
+            }
+        }
+
+        private void handleUnauthorizedResponse(
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            final UnauthorizedFW unauthorized = unauthorizedRO.wrap(buffer, index, length);
+            final long correlationId = unauthorized.correlationId();
 
             CompletableFuture<?> promise = promisesByCorrelationId.remove(correlationId);
             if (promise != null)
