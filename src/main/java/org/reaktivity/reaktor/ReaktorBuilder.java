@@ -21,6 +21,7 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -36,6 +37,7 @@ import org.reaktivity.nukleus.NukleusBuilder;
 import org.reaktivity.nukleus.NukleusFactory;
 import org.reaktivity.nukleus.buffer.BufferPool;
 import org.reaktivity.reaktor.internal.ControllerBuilderImpl;
+import org.reaktivity.reaktor.internal.DefaultController;
 import org.reaktivity.reaktor.internal.NukleusBuilderImpl;
 import org.reaktivity.reaktor.internal.ReaktorConfiguration;
 import org.reaktivity.reaktor.internal.buffer.Slab;
@@ -111,13 +113,14 @@ public class ReaktorBuilder
         final int bufferSlotCapacity = config.bufferSlotCapacity();
         final Slab bufferPool = new Slab(bufferPoolCapacity, bufferSlotCapacity);
         Supplier<BufferPool> supplyBufferPool = () -> bufferPool;
+        Function<String, DefaultController> supplyController = name -> DefaultController.create(config, name);
 
         Nukleus[] nuklei = new Nukleus[0];
         for (String name : nukleusFactory.names())
         {
             if (nukleusMatcher.test(name))
             {
-                NukleusBuilder builder = new NukleusBuilderImpl(config, name, supplyBufferPool);
+                NukleusBuilder builder = new NukleusBuilderImpl(config, name, supplyBufferPool, supplyController);
                 Nukleus nukleus = nukleusFactory.create(name, config, builder);
                 nuklei = ArrayUtil.add(nuklei, nukleus);
             }

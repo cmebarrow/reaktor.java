@@ -41,10 +41,12 @@ import org.reaktivity.reaktor.internal.types.control.AuthorizeFW;
 import org.reaktivity.reaktor.internal.types.control.AuthorizedFW;
 import org.reaktivity.reaktor.internal.types.control.ErrorFW;
 import org.reaktivity.reaktor.internal.types.control.FrameFW;
+import org.reaktivity.reaktor.internal.types.control.ResolveFW;
 import org.reaktivity.reaktor.internal.types.control.RouteFW;
 import org.reaktivity.reaktor.internal.types.control.RoutedFW;
 import org.reaktivity.reaktor.internal.types.control.UnauthorizeFW;
 import org.reaktivity.reaktor.internal.types.control.UnauthorizedFW;
+import org.reaktivity.reaktor.internal.types.control.UnresolveFW;
 import org.reaktivity.reaktor.internal.types.control.UnrouteFW;
 import org.reaktivity.reaktor.internal.types.control.UnroutedFW;
 
@@ -100,7 +102,7 @@ public final class ControllerBuilderImpl<T extends Controller> implements Contro
         return factory.apply(controllerSpi);
     }
 
-    private final class ControllerSpiImpl implements ControllerSpi
+    static final class ControllerSpiImpl implements ControllerSpi
     {
         private final FrameFW frameRO = new FrameFW();
         private final RoutedFW routedRO = new RoutedFW();
@@ -170,6 +172,28 @@ public final class ControllerBuilderImpl<T extends Controller> implements Contro
         public CompletableFuture<Void> doUnauthorize(int msgTypeId, DirectBuffer buffer, int index, int length)
         {
             assert msgTypeId == UnauthorizeFW.TYPE_ID;
+
+            return handleCommand(Void.class, msgTypeId, buffer, index, length);
+        }
+
+        public CompletableFuture<Authorization> doResolve(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            assert msgTypeId == ResolveFW.TYPE_ID;
+
+            return handleCommand(Authorization.class, msgTypeId, buffer, index, length);
+        }
+
+        public CompletableFuture<Void> doUnresolve(
+            int msgTypeId,
+            DirectBuffer buffer,
+            int index,
+            int length)
+        {
+            assert msgTypeId == UnresolveFW.TYPE_ID;
 
             return handleCommand(Void.class, msgTypeId, buffer, index, length);
         }
