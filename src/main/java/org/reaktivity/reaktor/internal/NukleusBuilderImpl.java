@@ -21,6 +21,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.reaktivity.nukleus.Nukleus;
@@ -40,6 +41,7 @@ public class NukleusBuilderImpl implements NukleusBuilder
     private final ReaktorConfiguration config;
     private final String name;
     private final Supplier<BufferPool> supplyBufferPool;
+    private final Function<String, DefaultController> supplyController;
     private final Map<Role, MessagePredicate> routeHandlers;
     private final Map<RouteKind, StreamFactoryBuilder> streamFactoryBuilders;
     private final List<Nukleus> components;
@@ -47,11 +49,13 @@ public class NukleusBuilderImpl implements NukleusBuilder
     public NukleusBuilderImpl(
         ReaktorConfiguration config,
         String name,
-        Supplier<BufferPool> supplyBufferPool)
+        Supplier<BufferPool> supplyBufferPool,
+        Function<String, DefaultController> supplyController)
     {
         this.config = config;
         this.name = name;
         this.supplyBufferPool = supplyBufferPool;
+        this.supplyController = supplyController;
         this.routeHandlers = new EnumMap<>(Role.class);
         this.streamFactoryBuilders = new EnumMap<>(RouteKind.class);
         this.components = new LinkedList<>();
@@ -113,7 +117,7 @@ public class NukleusBuilderImpl implements NukleusBuilder
         Conductor conductor = new Conductor(context);
         Watcher watcher = new Watcher(context);
         Router router = new Router(context);
-        Acceptor acceptor = new Acceptor(context);
+        Acceptor acceptor = new Acceptor(context, supplyController);
 
         conductor.setAcceptor(acceptor);
         watcher.setAcceptor(acceptor);

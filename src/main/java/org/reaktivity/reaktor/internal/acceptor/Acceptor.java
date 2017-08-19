@@ -34,6 +34,7 @@ import org.reaktivity.nukleus.function.MessagePredicate;
 import org.reaktivity.nukleus.route.RouteKind;
 import org.reaktivity.nukleus.stream.StreamFactoryBuilder;
 import org.reaktivity.reaktor.internal.Context;
+import org.reaktivity.reaktor.internal.DefaultController;
 import org.reaktivity.reaktor.internal.acceptable.Acceptable;
 import org.reaktivity.reaktor.internal.conductor.Conductor;
 import org.reaktivity.reaktor.internal.router.ReferenceKind;
@@ -51,6 +52,7 @@ public final class Acceptor extends Nukleus.Composite
     private final RouteFW.Builder routeRW = new RouteFW.Builder();
 
     private final Context context;
+    private final Function<String, DefaultController> supplyResolver;
     private final Map<String, Acceptable> acceptables;
     private final AtomicCounter routeRefs;
     private final MutableDirectBuffer routeBuf;
@@ -63,9 +65,11 @@ public final class Acceptor extends Nukleus.Composite
     private Function<Role, MessagePredicate> supplyRouteHandler;
 
     public Acceptor(
-        Context context)
+        Context context,
+        Function<String, DefaultController> supplyResolver)
     {
         this.context = context;
+        this.supplyResolver = supplyResolver;
         this.routeRefs = context.counters().routes();
         this.acceptables = new HashMap<>();
         this.routeBuf = new UnsafeBuffer(ByteBuffer.allocateDirect(context.maxControlCommandLength()));
