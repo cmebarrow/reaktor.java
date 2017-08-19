@@ -68,7 +68,8 @@ public class ControllerSecurityIT
         }
     };
 
-    private final K3poRule k3po = new K3poRule();
+    private final K3poRule k3po = new K3poRule()
+            .addScriptRoot("control", "org/reaktivity/specification/nukleus/control");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
@@ -79,17 +80,18 @@ public class ControllerSecurityIT
         .commandBufferCapacity(1024)
         .responseBufferCapacity(1024)
         .counterValuesBufferCapacity(1024)
-        .loader(new NukleusClassLoader(TestNukleusFactorySpi.class.getName(), TestSecurityNukleusFactorySpi.class.getName()))
+        .loader(new NukleusClassLoader(TestNukleusFactorySpi.class.getName(),
+                                       TestSecurityNukleusFactorySpi.class.getName()))
         .clean();
 
     @Rule
-    public final TestRule chain = outerRule(toTestRule(context)).around(reaktor).around(k3po).around(timeout);
+    public final TestRule chain = outerRule(toTestRule(context)).around(k3po).around(reaktor).around(timeout);
 
     @Test
     @Specification({
-        "route/server/controller",
-        "resolve/succeeds/nukleus", // simulates security nukleus
-        "authorize/succeeds/controller"
+        "${control}/route/server/controller",
+        "${control}/resolve/succeeds/nukleus", // simulates security nukleus
+        "${control}/authorize/succeeds/controller"
     })
     public void shouldAuthoriseRouteAsServer() throws Exception
     {
@@ -98,9 +100,9 @@ public class ControllerSecurityIT
 
     @Test
     @Specification({
-        "route/server/controller",
-        "resolve/fails.too.many.roles/nukleus", // simulates security nukleus
-        "authorize/fails.too.many.roles/controller"
+        "${control}/route/server/controller",
+        "${control}/resolve/fails.too.many.roles/nukleus", // simulates security nukleus
+        "${control}/authorize/fails.too.many.roles/controller"
     })
     public void shouldNotAuthoriseRouteAsServerWhenMaxNumberOfRolesIsExceeded() throws Exception
     {

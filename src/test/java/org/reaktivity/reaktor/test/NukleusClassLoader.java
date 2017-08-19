@@ -39,7 +39,7 @@ public class NukleusClassLoader extends ClassLoader
     public NukleusClassLoader(String... factorySpiClassNames)
     {
         final String contents = Arrays.stream(factorySpiClassNames).collect(joining("\n"));
-        URI uri = URI.create("data:," + contents);
+        URI uri = URI.create("data:," + factorySpiClassNames[0]);
         URL url = null;
         try
         {
