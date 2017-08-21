@@ -52,7 +52,7 @@ public final class Acceptor extends Nukleus.Composite
     private final RouteFW.Builder routeRW = new RouteFW.Builder();
 
     private final Context context;
-    private final Function<String, DefaultController> supplyResolver;
+    private final Function<String, DefaultController> supplyController;
     private final Map<String, Acceptable> acceptables;
     private final AtomicCounter routeRefs;
     private final MutableDirectBuffer routeBuf;
@@ -66,10 +66,10 @@ public final class Acceptor extends Nukleus.Composite
 
     public Acceptor(
         Context context,
-        Function<String, DefaultController> supplyResolver)
+        Function<String, DefaultController> supplyController)
     {
         this.context = context;
-        this.supplyResolver = supplyResolver;
+        this.supplyController = supplyController;
         this.routeRefs = context.counters().routes();
         this.acceptables = new HashMap<>();
         this.routeBuf = new UnsafeBuffer(ByteBuffer.allocateDirect(context.maxControlCommandLength()));

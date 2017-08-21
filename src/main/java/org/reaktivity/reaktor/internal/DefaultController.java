@@ -1,3 +1,18 @@
+/**
+ * Copyright 2016-2017 The Reaktivity Project
+ *
+ * The Reaktivity Project licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
 package org.reaktivity.reaktor.internal;
 
 import java.util.concurrent.CompletableFuture;
@@ -8,10 +23,8 @@ import org.agrona.DirectBuffer;
 import org.reaktivity.nukleus.Configuration;
 import org.reaktivity.nukleus.Controller;
 import org.reaktivity.nukleus.ControllerSpi;
-import org.reaktivity.nukleus.ControllerSpi.Authorization;
 import org.reaktivity.nukleus.function.MessageConsumer;
 import org.reaktivity.nukleus.function.MessagePredicate;
-import org.reaktivity.reaktor.internal.ControllerBuilderImpl.ControllerSpiImpl;
 
 public final class DefaultController implements Controller
 {
@@ -57,43 +70,6 @@ public final class DefaultController implements Controller
     {
         return name;
     }
-
-    public CompletableFuture<Authorization> authorize(
-        int msgTypeId,
-        DirectBuffer buffer,
-        int index,
-        int length)
-    {
-        return controllerSpi.doAuthorize(msgTypeId, buffer, index, length);
-    }
-
-    public CompletableFuture<Void> unauthorize(
-        int msgTypeId,
-        DirectBuffer buffer,
-        int index,
-        int length)
-    {
-        return controllerSpi.doUnauthorize(msgTypeId, buffer, index, length);
-    }
-
-    public CompletableFuture<Authorization> resolve(
-        int msgTypeId,
-        DirectBuffer buffer,
-        int index,
-        int length)
-    {
-        return ((ControllerSpiImpl) controllerSpi).doResolve(msgTypeId, buffer, index, length);
-    }
-
-    public CompletableFuture<Void> unresolve(
-        int msgTypeId,
-        DirectBuffer buffer,
-        int index,
-        int length)
-    {
-        return ((ControllerSpiImpl) controllerSpi).doUnresolve(msgTypeId, buffer, index, length);
-    }
-
 
     public CompletableFuture<Long> route(
         int msgTypeId,

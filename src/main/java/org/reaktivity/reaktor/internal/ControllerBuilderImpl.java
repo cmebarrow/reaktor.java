@@ -39,7 +39,6 @@ import org.reaktivity.nukleus.function.MessagePredicate;
 import org.reaktivity.reaktor.internal.layouts.StreamsLayout;
 import org.reaktivity.reaktor.internal.types.control.ErrorFW;
 import org.reaktivity.reaktor.internal.types.control.FrameFW;
-import org.reaktivity.reaktor.internal.types.control.ResolveFW;
 import org.reaktivity.reaktor.internal.types.control.RouteFW;
 import org.reaktivity.reaktor.internal.types.control.RoutedFW;
 import org.reaktivity.reaktor.internal.types.control.UnrouteFW;
