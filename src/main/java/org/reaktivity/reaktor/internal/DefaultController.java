@@ -120,6 +120,11 @@ public final class DefaultController implements Controller
         return controllerSpi.doSupplySource(source, factory);
     }
 
+    public long supplyCorrelationId()
+    {
+        return controllerSpi.nextCorrelationId();
+    }
+
     public <T> T supplyTarget(
         String target,
         BiFunction<ToIntFunction<MessageConsumer>, MessagePredicate, T> factory)

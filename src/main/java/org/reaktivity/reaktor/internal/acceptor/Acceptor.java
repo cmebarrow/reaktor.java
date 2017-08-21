@@ -19,6 +19,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -28,6 +29,7 @@ import org.agrona.LangUtil;
 import org.agrona.MutableDirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.concurrent.status.AtomicCounter;
+import org.reaktivity.nukleus.ControllerSpi.Authorization;
 import org.reaktivity.nukleus.Nukleus;
 import org.reaktivity.nukleus.buffer.BufferPool;
 import org.reaktivity.nukleus.function.MessagePredicate;
@@ -39,9 +41,11 @@ import org.reaktivity.reaktor.internal.acceptable.Acceptable;
 import org.reaktivity.reaktor.internal.conductor.Conductor;
 import org.reaktivity.reaktor.internal.router.ReferenceKind;
 import org.reaktivity.reaktor.internal.router.Router;
+import org.reaktivity.reaktor.internal.types.ListFW;
 import org.reaktivity.reaktor.internal.types.OctetsFW;
 import org.reaktivity.reaktor.internal.types.StringFW;
 import org.reaktivity.reaktor.internal.types.control.AuthorizeFW;
+import org.reaktivity.reaktor.internal.types.control.ResolveFW;
 import org.reaktivity.reaktor.internal.types.control.Role;
 import org.reaktivity.reaktor.internal.types.control.RouteFW;
 import org.reaktivity.reaktor.internal.types.control.UnauthorizeFW;
@@ -52,6 +56,7 @@ public final class Acceptor extends Nukleus.Composite
     private static final Pattern SOURCE_NAME = Pattern.compile("([^#]+).*");
 
     private final RouteFW.Builder routeRW = new RouteFW.Builder();
+    private final ResolveFW.Builder resolveRW = new ResolveFW.Builder();
 
     private final Context context;
     private final Function<String, DefaultController> supplyResolver;
@@ -120,16 +125,35 @@ public final class Acceptor extends Nukleus.Composite
     }
 
     public void doAuthorize(
-        AuthorizeFW authorize)
+        final AuthorizeFW authorize)
     {
         final String securityNukleus = authorize.securityNukleus().asString();
         DefaultController resolver = supplyResolver.apply(securityNukleus);
 
         if (resolver != null)
         {
-            // TODO: construct ResolveFW and write using resolver, set a
-            // listener on the resulting completion future to send the Authorized response
-            throw new UnsupportedOperationException();
+            ListFW<StringFW> roles = authorize.roles();
+            final long newCorrelationId = resolver.supplyCorrelationId();
+            ResolveFW resolve =
+                resolveRW.correlationId(newCorrelationId)
+                         .roles(listBuilder -> roles.forEach(
+                                role -> listBuilder.item(
+                                stringBuilder -> stringBuilder.set(role.buffer(),  role.offset(),  role.limit()))))
+                          .build();
+            CompletableFuture<Authorization> resolved =
+                resolver.resolve(resolve.typeId(), resolve.buffer(), resolve.offset(), resolve.limit());
+            resolved.whenComplete((authorization, throwable) ->
+                {
+                    if (authorization != null)
+                    {
+                        conductor.onAuthorized(newCorrelationId, authorization.authMask(), authorization.authExpires());
+                    }
+                    else
+                    {
+                        conductor.onError(authorize.correlationId());
+                    }
+                }
+            );
         }
         else
         {
