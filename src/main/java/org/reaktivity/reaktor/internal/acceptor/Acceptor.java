@@ -49,6 +49,7 @@ import org.reaktivity.reaktor.internal.types.control.ResolveFW;
 import org.reaktivity.reaktor.internal.types.control.Role;
 import org.reaktivity.reaktor.internal.types.control.RouteFW;
 import org.reaktivity.reaktor.internal.types.control.UnauthorizeFW;
+import org.reaktivity.reaktor.internal.types.control.UnresolveFW;
 import org.reaktivity.reaktor.internal.types.control.UnrouteFW;
 
 public final class Acceptor extends Nukleus.Composite
@@ -57,6 +58,7 @@ public final class Acceptor extends Nukleus.Composite
 
     private final RouteFW.Builder routeRW = new RouteFW.Builder();
     private final ResolveFW.Builder resolveRW = new ResolveFW.Builder();
+    private final UnresolveFW.Builder unresolveRW = new UnresolveFW.Builder();
 
     private final Context context;
     private final Function<String, DefaultController> supplyResolver;
@@ -142,18 +144,17 @@ public final class Acceptor extends Nukleus.Composite
                           .build();
             CompletableFuture<Authorization> resolved =
                 resolver.resolve(resolve.typeId(), resolve.buffer(), resolve.offset(), resolve.limit());
-            resolved.whenComplete((authorization, throwable) ->
+            resolved
+                .thenAccept(authorization ->
                 {
-                    if (authorization != null)
-                    {
-                        conductor.onAuthorized(newCorrelationId, authorization.authMask(), authorization.authExpires());
-                    }
-                    else
-                    {
-                        conductor.onError(authorize.correlationId());
-                    }
-                }
-            );
+                    conductor.onAuthorized(authorize.correlationId(), authorization.authMask(), authorization.authExpires());
+                    // TODO: store authMask and authExpires on the route
+                })
+                .exceptionally(throwable ->
+                {
+                    conductor.onError(authorize.correlationId());
+                    return null;
+                });
         }
         else
         {
@@ -164,8 +165,34 @@ public final class Acceptor extends Nukleus.Composite
     public void doUnauthorize(
         UnauthorizeFW unauthorize)
     {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException();
+        final String securityNukleus = unauthorize.securityNukleus().asString();
+        DefaultController resolver = supplyResolver.apply(securityNukleus);
+
+        if (resolver != null)
+        {
+            final long newCorrelationId = resolver.supplyCorrelationId();
+
+            // TODO: get and remove authMask (and authExpires) from the route, set in unresolveRW
+            UnresolveFW unresolve =
+                unresolveRW.correlationId(newCorrelationId)
+//                           .authMask()
+                           .build();
+            CompletableFuture<Void> unresolved =
+                resolver.unresolve(unresolve.typeId(), unresolve.buffer(), unresolve.offset(), unresolve.limit());
+            unresolved
+                .thenAccept(authorization ->
+                    conductor.onUnauthorized(unauthorize.correlationId()))
+                .exceptionally(throwable ->
+                {
+                    conductor.onError(unauthorize.correlationId());
+                    return null;
+                });
+        }
+        else
+        {
+            conductor.onError(unauthorize.correlationId());
+        }
+
     }
 
     public void doRoute(
